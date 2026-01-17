@@ -220,3 +220,6 @@ Ako su policy ACCEPT → nema zaštite
 Preporuka:
 Postaviti default DROP + dozvoliti samo potrebno
 Rizik: HIGH
+
+Zaključak:
+Tokom provjere mrežne sigurnosti izvršeno je otkrivanje hostova u subnetu, skeniranje portova i identifikacija servisa pomoću Nmap alata. Analizirani su sigurnosni rizici na osnovu otvorenih portova i konfiguracija servisa. Uočene su potencijalne ranjivosti poput izloženih servisa (SMB/RDP/FTP), nekriptovane komunikacije (HTTP/Telnet/FTP), te mogućih mrežnih napada (ARP/DNS/DHCP spoofing). Preporučene su mjere hardeninga: patch management, isključivanje nepotrebnih servisa, firewall restrikcije, moderni protokoli (HTTPS/SSH keys), te segmentacija i kontrola pristupa.
