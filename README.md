@@ -1,4 +1,9 @@
 1) FTP (21) – Plain text login / Anonymous login
+sudo nmap -sV -p 21 <IP>
+sudo nmap --script ftp-anon,ftp-syst,ftp-banner -p 21 <IP>
+21/tcp open  ftp vsftpd 3.0.3
+| ftp-anon: Anonymous FTP login allowed (FTP code 230)
+| ftp-anon: Anonymous FTP login allowed (FTP code 230)
 
 Naziv ranjivosti: FTP koristi nekriptovanu autentifikaciju (Plain-text credentials) + moguć Anonymous login
 Host: <IP>
@@ -24,10 +29,21 @@ Host: <IP>
 Port/Servis: 22/SSH
 Kako je otkriveno:
 sudo nmap -sV -p22 <IP>
-sudo nmap --script ssh2-enum-algos -p22 <IP>
+sudo nmap --script ssh2-enum-algos,ssh-hostkey -p 22 <IP>
 ssh -v user@<IP>
 Rezultat (dokaz):
 SSH servis aktivan na portu 22
+
+slabi algoritmi:
+| ssh2-enum-algos:
+|   encryption_algorithms: aes128-cbc
+|   mac_algorithms: hmac-sha1
+
+dobri algoritmi:
+| ssh2-enum-algos:
+|   kex_algorithms: curve25519-sha256
+|   server_host_key_algorithms: ssh-ed25519
+
 Ako se vidi star protokol / slabi algoritmi → povećan rizik
 Preporuka:
 Koristiti SSH ključeve (isključiti password login)
@@ -36,7 +52,7 @@ Zabraniti PermitRootLogin yes
 Forsirati SSHv2 i moderne algoritme
 Rizik: MEDIUM/HIGH
 
-3) Telnet (23) – Plain text (kritično)
+4) Telnet (23) – Plain text (kritično)
 
 Naziv ranjivosti: Telnet koristi nekriptovanu komunikaciju (sniffing moguć)
 Host: <IP>
@@ -45,6 +61,7 @@ Kako je otkriveno:
 sudo nmap -sV -p23 <IP>
 Rezultat (dokaz):
 Telnet port 23 otvoren
+on sve salje u plain textu
 Preporuka:
 Onemogućiti Telnet servis
 Koristiti SSH
@@ -60,6 +77,11 @@ sudo nmap --script http-title,http-headers,http-methods,http-enum,http-robots.tx
 sudo nmap --script http-trace -p80 <IP>
 Rezultat (dokaz):
 HTTP otvoren bez TLS enkripcije
+
+headers leak:
+Server: Apache/2.4.18 (Ubuntu)
+X-Powered-By: PHP/7.0.33
+
 Headers/methods mogu otkriti tehnologije i verzije (pomaže napadaču)
 Preporuka:
 Forsirati HTTPS (443) i preusmjeriti 80 → 443
@@ -67,7 +89,7 @@ Isključiti nepotrebne metode (TRACE)
 Update web server i sakriti banner
 Rizik: MEDIUM/HIGH
 
-5) HTTPS (443) – Slabi TLS protokoli/cipheri, cert problemi
+6) HTTPS (443) – Slabi TLS protokoli/cipheri, cert problemi
 Naziv ranjivosti: Slaba TLS konfiguracija / zastarjeli protokoli / slab certifikat
 Host: <IP>
 Port/Servis: 443/HTTPS
@@ -83,7 +105,7 @@ Ostavi TLS1.2+ / TLS1.3
 Koristiti validan certifikat
 Rizik: MEDIUM
 
-6) SMB (445) – EternalBlue / SMBv1 / SMB Ghost / share enumeracija
+7) SMB (445) – EternalBlue / SMBv1 / SMB Ghost / share enumeracija
 Rranjivosti: SMB izložen prema mreži (visok rizik – MS17-010 / SMBv1)
 Host: <IP>
 Port/Servis: 445/SMB
@@ -96,13 +118,16 @@ Rezultat (dokaz):
 Port 445 otvoren
 Ako smb-protocols pokaže SMBv1 → moguć EternalBlue rizik
 smb-vuln* može prijaviti ranjivost MS17-010 ili slične
+ smb-vuln-ms17-010:
+|   VULNERABLE: Remote Code Execution vulnerability in Microsoft SMBv1 servers (ms17-010)
+
 Preporuka:
 Onemogućiti SMBv1
 Patch Windows (MS updates)
 Blokirati 445 na firewallu ako nije potrebno
 Rizik: HIGH
 
-7) NetBIOS (139) – SMB/legacy exposure
+9) NetBIOS (139) – SMB/legacy exposure
 Naziv ranjivosti: NetBIOS port 139 izložen (legacy SMB surface)
 Host: <IP>
 Port/Servis: 139/NetBIOS
@@ -115,7 +140,7 @@ Onemogućiti NetBIOS over TCP/IP ako nije potreban
 Osloniti se na modern SMBv2/v3 i firewall
 Rizik: MEDIUM
 
-8) RDP (3389) – BlueKeep / slaba enkripcija
+10) RDP (3389) – BlueKeep / slaba enkripcija
 Naziv ranjivosti: RDP izložen (remote access surface) + moguće slabe postavke
 Host: <IP>
 Port/Servis: 3389/RDP
@@ -131,7 +156,7 @@ Uključiti NLA (Network Level Authentication)
 Patch sistem
 Rizik: HIGH
 
-9) MySQL (3306) – otvoren prema mreži / bez auth
+11) MySQL (3306) – otvoren prema mreži / bez auth
 Naziv ranjivosti: MySQL servis izložen (moguće slabe lozinke i remote pristup)
 Host: <IP>
 Port/Servis: 3306/MySQL
@@ -146,7 +171,7 @@ Bind samo na localhost ako ne treba remote
 Firewall block 3306 eksterno
 Rizik: HIGH
 
-10) PostgreSQL (5432) – otvoren prema mreži
+12) PostgreSQL (5432) – otvoren prema mreži
 Naziv ranjivosti: PostgreSQL otvoren na mreži (moguć brute force / misconfig)
 Host: <IP>
 Port/Servis: 5432/PostgreSQL
@@ -160,7 +185,7 @@ Firewall + autentikacija
 Bind localhost ako nije potreban remote
 Rizik: MEDIUM/HIGH
 
-11) DNS Spoofing rizik (lokalni DNS = gateway)
+13) DNS Spoofing rizik (lokalni DNS = gateway)
 Naziv ranjivosti: DNS Spoofing moguć zbog korištenja lokalnog DNS servera (gateway)
 Host: Kali
 Kako je otkriveno:
@@ -172,7 +197,7 @@ Postaviti pouzdan DNS (npr 1.1.1.1 / 8.8.8.8)
 Koristiti DNSSEC gdje moguće
 Rizik: MEDIUM
 
-12) ARP Spoofing / MITM (dinamična ARP tabela)
+14) ARP Spoofing / MITM (dinamična ARP tabela)
 Naziv ranjivosti: ARP spoofing/Man-in-the-middle moguć zbog dinamičnih ARP unosa
 Host: Kali
 Kako je otkriveno:
@@ -184,7 +209,7 @@ Postaviti statički ARP zapis za gateway
 Switch security (ARP inspection)
 Rizik: MEDIUM/HIGH
 
-13) DHCP Spoofing (lažni DHCP server)
+15) DHCP Spoofing (lažni DHCP server)
 Naziv ranjivosti: DHCP spoofing moguć (napadač može slati lažne DHCP postavke)
 Host: Kali
 Kako je otkriveno:
@@ -196,7 +221,7 @@ DHCP snooping (na switchu)
 Prihvataj DHCP samo od legit servera
 Rizik: MEDIUM
 
-14) Promiscuous Mode / Sniffing rizik
+16) Promiscuous Mode / Sniffing rizik
 Naziv ranjivosti: Moguć sniffing ako je interface u promiscuous modu
 Host: Kali
 Kako je otkriveno:
@@ -209,7 +234,7 @@ Isključiti promiscuous:
 sudo ip link set eth0 promisc off
 Rizik: MEDIUM
 
-15) Firewall loša konfiguracija (sve otvoreno)
+17) Firewall loša konfiguracija (sve otvoreno)
 
 Naziv ranjivosti: Nema firewall zaštite (INPUT/FORWARD ACCEPT)
 Host: Kali
